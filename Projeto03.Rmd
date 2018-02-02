@@ -1,0 +1,127 @@
+---
+title: "Prevendo gastos Hospitalares - Projeto 3"
+author: "Rodrigo Gomes Moraes"
+date: "February 02, 2018"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+## Projeto 3 - Prevendo Despesas Hospitalares
+
+Para esta an�lise, iremos utilizar um conjunto de dados simulando despesas m�dicas para um conjunto de pacientes espalhados por 4 regi�es do Brasil. Esse dataset possui 1.338 observações e 7 vari�veis.
+
+
+## Passo 1 - Coletando os Dados
+
+Aqui est�o a coleta de dados, neste caso um arquivo csv.
+
+
+```{r coleta}
+# Coletando dados
+despesas <- read.csv("http://datascienceacademy.com.br/blog/aluno/RFundamentos/Datasets/ML/despesas.csv")
+```
+
+
+## Etapa 2 - Explorando os Dados
+
+
+
+```{r explorando}
+# Visualizando as variáveis
+str(despesas)
+
+# Medias de Tendência Central da variável gastos
+summary(despesas$gastos)
+
+# Construindo um histograma
+hist(despesas$gastos, main = 'Histograma', xlab = 'Gastos')
+
+# Tabela de contingência das regiões
+table(despesas$regiao)
+
+# Explorando relacionamento entre as variáveis: Matriz de Correlação
+cor(despesas[c("idade", "bmi", "filhos", "gastos")])
+
+# Nenhuma das correlações na matriz são consideradas fortes, mas existem algumas associações interessantes. 
+# Por exemplo, a idade e o bmi (IMC) parecem ter uma correlação positiva fraca, o que significa que 
+# com o aumento da idade, a massa corporal tende a aumentar. Há também uma correlação positiva 
+# moderada entre a idade e os gastos, além do número de filhos e os gasos. Estas associações implicam 
+# que, à media que idade, massa corporal e número de filhos aumenta, o custo esperado do seguro saúde sobe. 
+
+# Visualizando relacionamento entre as variáveis: Scatterplot
+# Perceba que não existe um claro relacionamento entre as variáveis
+pairs(despesas[c("idade", "bmi", "filhos", "gastos")])
+
+# Scatterplot Matrix
+# install.packages("psych")
+library(psych)
+# Este gráfico fornece mais informações sobre o relacionamento entre as variáveis
+pairs.panels(despesas[c("idade", "bmi", "filhos", "gastos")])
+
+```
+
+
+## Etapa 3 - Treinando o modelo
+
+
+
+
+```{r treinamento}
+modelo <- lm(gastos ~ idade + filhos + bmi + sexo + fumantes + regiao,
+                data = despesas)
+
+# Similar ao item anterior
+modelo <- lm(gastos ~ ., data = despesas)
+
+# Visualizando os coeficientes
+modelo
+
+# Prevendo despesas médicas 
+previsao <- predict(modelo)
+class(previsao)
+head(previsao)
+
+```
+
+
+## Etapa 4 - Avaliando a Performance do Modelo
+
+
+
+```{r performance}
+# Mais detalhes sobre o modelo
+summary(modelo)
+
+
+```
+
+
+## Etapa 5 - Otimização do Modelo
+ 
+ 
+ 
+```{r otimizacao}
+# Adicionando uma variável com o dobro do valor das idades
+despesas$idade2 <- despesas$idade ^ 2
+
+# Adicionando um indicador para BMI >= 30
+despesas$bmi30 <- ifelse(despesas$bmi >= 30, 1, 0)
+
+# Criando o modelo final
+modelo_v2 <- lm(gastos ~ idade + idade2 + filhos + bmi + sexo +
+                   bmi30 * fumantes + regiao, data = despesas)
+
+summary(modelo_v2)
+```
+
+
+
+
+
+## Fim
+## www.datascienceacademy.com.br
+
