@@ -1,8 +1,8 @@
 ---
-title: "Prevendo gastos Hospitalares - Projeto 3"
-author: "Rodrigo Gomes Moraes"
-date: "February 02, 2018"
-output: pdf_document
+title: "Projeto acadÃªmico - Projeto 3"
+output:
+  html_document:
+    df_print: paged
 ---
 
 ```{r setup, include=FALSE}
@@ -12,116 +12,122 @@ knitr::opts_chunk$set(echo = TRUE)
 
 ## Projeto 3 - Prevendo Despesas Hospitalares
 
-Para esta análise, iremos utilizar um conjunto de dados simulando despesas médicas para um conjunto de pacientes espalhados por 4 regiões do Brasil. Esse dataset possui 1.338 observaÃ§Ãµes e 7 variáveis.
+Para esta análise, usaremos um conjunto de dados simulando despesas médicas para um conjunto de pacientes de 4 regiões do Brasil. Esse dataset possui 1.338 observações e 7 variáveis.
 
 
-## Passo 1 - Coletando os Dados
+## Etapa 1 - Coletando dados no github
 
-Aqui estão a coleta de dados, neste caso um arquivo csv.
+Aqui iremos coletar os dados, neste caso um arquivo csv.
 
 
 ```{r coleta}
-# Coletando dados
-despesas <- read.csv("http://datascienceacademy.com.br/blog/aluno/RFundamentos/Datasets/ML/despesas.csv")
+# Realiza a importação do arquivo CSV, contendo dados hospitalares dos pacientes do plano de saude.
+
+# Inicia biblioteca
+library(ggplot2)
+library(ggthemes)
+library(dplyr)
+library(corrplot)
+library(corrgram)
+
+
+# Dataset público cedido pela DSA
+df <- read.csv("http://datascienceacademy.com.br/blog/aluno/RFundamentos/Datasets/ML/despesas.csv")
 ```
 
 
-## Etapa 2 - Explorando os Dados
+## Etapa 2 - Inicia a análise explanatória dos dados
 
 
 
 ```{r explorando}
-# Visualizando as variÃ¡veis
-str(despesas)
+head(df)
+str(df)
+summary(df)
+any(is.na(df))
 
-# Medias de TendÃªncia Central da variÃ¡vel gastos
-summary(despesas$gastos)
+# Obtendo apenas as colunas numÃ©ricas
+colnum <- sapply(df, is.numeric)
+colnum
 
-# Construindo um histograma
-hist(despesas$gastos, main = 'Histograma', xlab = 'Gastos')
+# Filtrando as colunas numÃ©ricas para correlaÃ§Ã£o
+data_cor <- cor(df[,colnum])
+data_cor
+head(data_cor)
 
-# Tabela de contingÃªncia das regiÃµes
-table(despesas$regiao)
-
-# Explorando relacionamento entre as variÃ¡veis: Matriz de CorrelaÃ§Ã£o
-cor(despesas[c("idade", "bmi", "filhos", "gastos")])
-
-# Nenhuma das correlaÃ§Ãµes na matriz sÃ£o consideradas fortes, mas existem algumas associaÃ§Ãµes interessantes. 
-# Por exemplo, a idade e o bmi (IMC) parecem ter uma correlaÃ§Ã£o positiva fraca, o que significa que 
-# com o aumento da idade, a massa corporal tende a aumentar. HÃ¡ tambÃ©m uma correlaÃ§Ã£o positiva 
-# moderada entre a idade e os gastos, alÃ©m do nÃºmero de filhos e os gasos. Estas associaÃ§Ãµes implicam 
-# que, Ã  media que idade, massa corporal e nÃºmero de filhos aumenta, o custo esperado do seguro saÃºde sobe. 
-
-# Visualizando relacionamento entre as variÃ¡veis: Scatterplot
-# Perceba que nÃ£o existe um claro relacionamento entre as variÃ¡veis
-pairs(despesas[c("idade", "bmi", "filhos", "gastos")])
-
-# Scatterplot Matrix
-# install.packages("psych")
-library(psych)
-# Este grÃ¡fico fornece mais informaÃ§Ãµes sobre o relacionamento entre as variÃ¡veis
-pairs.panels(despesas[c("idade", "bmi", "filhos", "gastos")])
+# Compara relação entre as variáveis
+corrplot(data_cor, method = 'color')
 
 ```
 
 
-## Etapa 3 - Treinando o modelo
-
+## Etapa 3 - Treinando modelo de regreção linear, atraves da função lm
 
 
 
 ```{r treinamento}
-modelo <- lm(gastos ~ idade + filhos + bmi + sexo + fumantes + regiao,
-                data = despesas)
+#install.packages("caTools")
+library(caTools)
 
-# Similar ao item anterior
-modelo <- lm(gastos ~ ., data = despesas)
+# Cria as amostras
+set.seed(101)
+amostra <- sample.split(df$gastos, SplitRatio = 0.70)
 
-# Visualizando os coeficientes
-modelo
+# Criação dos dados de treino e dados de teste
 
-# Prevendo despesas mÃ©dicas 
-previsao <- predict(modelo)
-class(previsao)
-head(previsao)
+# Dados de treino - 70% dos dados
+treino = subset(df, amostra == TRUE)
+head(treino)
+str(treino)
+
+# Dados de teste - 30% dos dados
+teste = subset(df, amostra == FALSE)
+head(teste)
+str(teste)
+
+# Gerando o Modelo (Usando todos os atributos)
+model1 <- lm(gastos ~ ., treino)
+
+# ** Fazendo previsoes no modelo
+prev1 <- predict(model1, teste)
 
 ```
 
 
-## Etapa 4 - Avaliando a Performance do Modelo
+## Etapa 4 - Avaliando resultado dos valores previstos e observados e performance
 
 
+```{r resultado}
+# Avalia performance do Modelo
+summary(model1)
 
-```{r performance}
-# Mais detalhes sobre o modelo
-summary(modelo)
+# Visualizando os valores previstos e observados
+resultados <- cbind(prev1, teste$gastos) 
+colnames(resultados) <- c('Previsto','Real')
+resultados <- as.data.frame(resultados)
+resultados
+min(resultados)
+max(resultados)
 
 
 ```
 
 
-## Etapa 5 - OtimizaÃ§Ã£o do Modelo
- 
- 
- 
-```{r otimizacao}
-# Adicionando uma variÃ¡vel com o dobro do valor das idades
-despesas$idade2 <- despesas$idade ^ 2
+## Etapa 5 - Avalia nível de precisão do modelo
 
-# Adicionando um indicador para BMI >= 30
-despesas$bmi30 <- ifelse(despesas$bmi >= 30, 1, 0)
 
-# Criando o modelo final
-modelo_v2 <- lm(gastos ~ idade + idade2 + filhos + bmi + sexo +
-                   bmi30 * fumantes + regiao, data = despesas)
+```{r avaliacao}
+# Calculando R Squared
+SSE = sum((resultados$Previsto - resultados$Real)^2)
+SST = sum( (mean(df$gastos) - resultados$Real)^2)
 
-summary(modelo_v2)
+# R-Squared
+# Ajuda a avaliar o nÃ?vel de precisÃ£o do nosso modelo. Quanto maior, melhor, sendo 1 o valor ideal.
+R2 = 1 - (SSE/SST)
+R2
+
 ```
-
-
-
-
 
 ## Fim
-## www.datascienceacademy.com.br
+
 
